@@ -1,0 +1,10 @@
+#package specification
+#Fri May 20 17:04:58 CEST 2016
+masktools-version=3.0
+net.pwendland.javacard.pki.isoapplet-major=1
+net.pwendland.javacard.pki.isoapplet-aid=F276A288BCFBA69D34F310
+net.pwendland.javacard.pki.isoapplet-clazzes=net.pwendland.javacard.pki.isoapplet.File net.pwendland.javacard.pki.isoapplet.DedicatedFile net.pwendland.javacard.pki.isoapplet.ElementaryFile net.pwendland.javacard.pki.isoapplet.ElementaryFileLinearVariable net.pwendland.javacard.pki.isoapplet.ElementaryFileLinearFixed net.pwendland.javacard.pki.isoapplet.ElementaryFileCyclicFixed net.pwendland.javacard.pki.isoapplet.ElementaryFileTransparent net.pwendland.javacard.pki.isoapplet.InvalidArgumentsException net.pwendland.javacard.pki.isoapplet.IsoApplet net.pwendland.javacard.pki.isoapplet.IsoFileSystem net.pwendland.javacard.pki.isoapplet.NotEnoughSpaceException net.pwendland.javacard.pki.isoapplet.NotFoundException net.pwendland.javacard.pki.isoapplet.Record net.pwendland.javacard.pki.isoapplet.UtilTLV
+net.pwendland.javacard.pki.isoapplet-minor=0
+jcop-packages=net.pwendland.javacard.pki.isoapplet
+net.pwendland.javacard.pki.isoapplet-base=internal
+net.pwendland.javacard.pki.isoapplet.IsoApplet-aid=F276A288BCFBA69D34F31001

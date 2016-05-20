@@ -1,0 +1,28 @@
+
+
+=======[ START LOG: 13/Mai/2016 17:43:50 ]========
+***** Verifying Cap-file isoapplet.cap *****
+
+[ COMMAND: ] /C:/eclipse-jcop/eclipse/plugins/com.ibm.bluez.jcop.eclipse_3.4.0/\executeCmd.cmd "C:\JCDK3.0.4_ClassicEdition\bin\verifycap.bat" -verbose "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\gp211\globalplatform.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\apdu.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\biometry.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\crypto.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\external.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\framework.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\io.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\lang.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\math.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\rmi.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\security.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\service.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\tlv.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\util.exp" "C:\Workspaces\Playground\IsoApplet\bin\net\pwendland\javacard\pki\isoapplet\javacard\isoapplet.exp" "C:\Workspaces\Playground\IsoApplet\bin\net\pwendland\javacard\pki\isoapplet\javacard\isoapplet.cap" 
+
+[ INFO: ] Verification completed with 0 warnings and 0 errors.
+
+=======[ END LOG : ]========
+
+=======[ START LOG: 20/Mai/2016 14:37:20 ]========
+***** Verifying Cap-file isoapplet.cap *****
+
+[ COMMAND: ] /C:/eclipse-jcop/eclipse/plugins/com.ibm.bluez.jcop.eclipse_3.4.0/\executeCmd.cmd "C:\JCDK3.0.4_ClassicEdition\bin\verifycap.bat" -verbose "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\gp211\globalplatform.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\apdu.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\biometry.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\crypto.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\external.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\framework.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\io.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\lang.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\math.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\rmi.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\security.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\service.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\tlv.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\util.exp" "C:\Workspaces\Playground\IsoApplet\bin\net\pwendland\javacard\pki\isoapplet\javacard\isoapplet.exp" "C:\Workspaces\Playground\IsoApplet\bin\net\pwendland\javacard\pki\isoapplet\javacard\isoapplet.cap" 
+
+[ INFO: ] Verification completed with 0 warnings and 0 errors.
+
+=======[ END LOG : ]========
+
+=======[ START LOG: 20/Mai/2016 17:04:58 ]========
+***** Verifying Cap-file isoapplet.cap *****
+
+[ COMMAND: ] /C:/eclipse-jcop/eclipse/plugins/com.ibm.bluez.jcop.eclipse_3.4.0/\executeCmd.cmd "C:\JCDK3.0.4_ClassicEdition\bin\verifycap.bat" -verbose "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\gp211\globalplatform.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\apdu.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\biometry.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\crypto.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\external.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\framework.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\io.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\lang.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\math.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\rmi.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\security.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\service.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\tlv.exp" "C:\eclipse-jcop\eclipse\plugins\com.ibm.bluez.jcop.eclipse_3.4.0\apis\jc222\util.exp" "C:\Workspaces\Playground\IsoApplet\bin\net\pwendland\javacard\pki\isoapplet\javacard\isoapplet.exp" "C:\Workspaces\Playground\IsoApplet\bin\net\pwendland\javacard\pki\isoapplet\javacard\isoapplet.cap" 
+
+[ INFO: ] Verification completed with 0 warnings and 0 errors.
+
+=======[ END LOG : ]========
