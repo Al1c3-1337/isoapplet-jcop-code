@@ -26,6 +26,8 @@ import javacard.framework.APDU;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.framework.OwnerPIN;
+import javacard.security.DSAPrivateKey;
+import javacard.security.DSAPublicKey;
 import javacard.security.KeyBuilder;
 import javacard.security.KeyPair;
 import javacard.security.Key;
@@ -54,7 +56,7 @@ import javacard.security.RandomData;
  */
 public class IsoApplet extends Applet implements ExtendedLength {
     /* API Version */
-    public static final byte API_VERSION_MAJOR = (byte) 0x00;
+    public static final byte API_VERSION_MAJOR = (byte) 0x01;
     public static final byte API_VERSION_MINOR = (byte) 0x06;
 
     /* Card-specific configuration */
@@ -98,6 +100,9 @@ public class IsoApplet extends Applet implements ExtendedLength {
 
     private static final byte ALG_GEN_EC = (byte) 0xEC;
     private static final byte ALG_ECDSA_SHA1 = (byte) 0x21;
+    
+    private static final byte ALG_GEN_DSA = (byte) 0xD5;
+    private static final byte ALG_DSA_SHA1 = (byte) 0x31;
 
     private static final short LENGTH_EC_FP_224 = 224;
     private static final short LENGTH_EC_FP_256 = 256;
@@ -116,6 +121,7 @@ public class IsoApplet extends Applet implements ExtendedLength {
     private static final byte API_FEATURE_EXT_APDU = (byte) 0x01;
     private static final byte API_FEATURE_SECURE_RANDOM = (byte) 0x02;
     private static final byte API_FEATURE_ECC = (byte) 0x04;
+    private static final byte API_FEATURE_DSA = (byte) 0x08;
 
     /* Other constants */
     // "ram_buf" is used for:
@@ -149,6 +155,7 @@ public class IsoApplet extends Applet implements ExtendedLength {
     private short[] ram_chaining_cache = null;
     private Cipher rsaPkcs1Cipher = null;
     private Signature ecdsaSignature = null;
+    private Signature dsaSignature = null;
     private RandomData randomData = null;
     private byte api_features;
 
@@ -194,6 +201,21 @@ public class IsoApplet extends Applet implements ExtendedLength {
                  * as this would prevent installation. */
                 ecdsaSignature = null;
                 api_features &= ~API_FEATURE_ECC;
+            } else {
+                throw e;
+            }
+        }
+        
+        try {
+            dsaSignature = Signature.getInstance(Signature.ALG_DSA_SHA, false);
+            api_features |= API_FEATURE_DSA;
+        } catch (CryptoException e) {
+            if(e.getReason() == CryptoException.NO_SUCH_ALGORITHM) {
+                /* Few Java Cards do not support DSA at all.
+                 * We should not throw an exception in this cases
+                 * as this would prevent installation. */
+                dsaSignature = null;
+                api_features &= ~API_FEATURE_DSA;
             } else {
                 throw e;
             }
@@ -736,6 +758,43 @@ public class IsoApplet extends Applet implements ExtendedLength {
             sendRSAPublicKey(apdu, ((RSAPublicKey)(kp.getPublic())));
 
             break;
+            
+        case ALG_GEN_DSA:
+            if(p1 != (byte) 0x42 || p2 != (byte) 0x00) {
+                ISOException.throwIt(ISO7816.SW_INCORRECT_P1P2);
+            }
+
+            // Command chaining might be used for ECC, but not for DSA.
+            if(isCommandChainingCLA(apdu)) {
+                ISOException.throwIt(ISO7816.SW_COMMAND_CHAINING_NOT_SUPPORTED);
+            }
+            try {
+                kp = new KeyPair(KeyPair.ALG_DSA, KeyBuilder.LENGTH_DSA_1024);
+            } catch(CryptoException e) {
+                if(e.getReason() == CryptoException.NO_SUCH_ALGORITHM) {
+                    ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
+                }
+                ISOException.throwIt(ISO7816.SW_UNKNOWN);
+            }
+            kp.genKeyPair();
+            if(keys[privKeyRef] != null) {
+                keys[privKeyRef].clearKey();
+            }
+            keys[privKeyRef] = kp.getPrivate();
+            if(JCSystem.isObjectDeletionSupported()) {
+                JCSystem.requestObjectDeletion();
+            }
+
+            // Return pubkey. See ISO7816-8 table 3.
+            try {
+				sendDSAPublicKey(apdu, ((DSAPublicKey)(kp.getPublic())));
+			} catch (InvalidArgumentsException e1) {
+				ISOException.throwIt(ISO7816.SW_UNKNOWN);
+			} catch (NotEnoughSpaceException e1) {
+				ISOException.throwIt(ISO7816.SW_UNKNOWN);
+			}
+
+            break;
 
         case ALG_GEN_EC:
             if((p1 != (byte) 0x00) || p2 != (byte) 0x00) {
@@ -845,6 +904,83 @@ public class IsoApplet extends Applet implements ExtendedLength {
         ram_buf[pos++] = (byte) 0x03; // Length: 3 Bytes.
         pos += key.getExponent(ram_buf, pos);
 
+        sendLargeData(apdu, (short)0, pos);
+    }
+    
+    /**
+     * \brief Encode a DSAPublicKey according to ISO7816-8 table 3 and send it as a response,
+     * using an extended APDU.
+     *
+     * \see ISO7816-8 table 3.
+     *
+     * \param The apdu to answer. setOutgoing() must not be called already.
+     *
+     * \throw InvalidArgumentsException Field length of the DSA key provided can not be handled.
+     *
+     * \throw NotEnoughSpaceException ram_buf is too small to contain the DSA key to send.
+     */
+    private void sendDSAPublicKey(APDU apdu, DSAPublicKey key) throws InvalidArgumentsException, NotEnoughSpaceException {
+        short pos = 0;
+        short len, r;
+
+        // Return pubkey. See ISO7816-8 table 3.
+        len = (short)(4 // We have: 4 tags,
+                      + 3 * 2 + 1  // 4 length fields, 3 2-byte LF, 1 1-byte LF
+                      + 128+20+255+255 + 2); // 4 * field_len + 2 * 2 field_len + cofactor (2 bytes) + 2 * uncompressed tag
+        pos += UtilTLV.writeTagAndLen((short)0x7F49, len, ram_buf, pos);
+
+        // Prime - "P"
+        len = 128;
+        pos += UtilTLV.writeTagAndLen((short)0x81, len, ram_buf, pos);
+        r = key.getP(ram_buf, pos);
+        if(r < len) {
+            // If the parameter has fewer bytes than the field length, we fill
+            // the MSB's with zeroes.
+            Util.arrayCopyNonAtomic(ram_buf, pos, ram_buf, (short)(pos+len-r), (short)(len-r));
+            Util.arrayFillNonAtomic(ram_buf, pos, r, (byte)0x00);
+        } else if (r > len) {
+            throw InvalidArgumentsException.getInstance();
+        }
+        pos += len;
+
+        // "Q"
+        len = 20;
+        pos += UtilTLV.writeTagAndLen((short)0x82, len, ram_buf, pos);
+        r = key.getQ(ram_buf, pos);
+        if(r < len) {
+            Util.arrayCopyNonAtomic(ram_buf, pos, ram_buf, (short)(pos+len-r), (short)(len-r));
+            Util.arrayFillNonAtomic(ram_buf, pos, r, (byte)0x00);
+        } else if (r > len) {
+            throw InvalidArgumentsException.getInstance();
+        }
+        pos += len;
+
+        // "G"
+        len = 255;
+        pos += UtilTLV.writeTagAndLen((short)0x83, len, ram_buf, pos);
+        r = key.getG(ram_buf, pos);
+        if(r < len) {
+            Util.arrayCopyNonAtomic(ram_buf, pos, ram_buf, (short)(pos+len-r), (short)(len-r));
+            Util.arrayFillNonAtomic(ram_buf, pos, r, (byte)0x00);
+        } else if (r > len) {
+            throw InvalidArgumentsException.getInstance();
+        }
+        pos += len;
+
+        // "Y"
+        len = 255;
+        pos += UtilTLV.writeTagAndLen((short)0x84, len, ram_buf, pos);
+        r = key.getY(ram_buf, pos);
+        if(r < len) {
+            Util.arrayCopyNonAtomic(ram_buf, pos, ram_buf, (short)(pos+len-r), (short)(len-r));
+            Util.arrayFillNonAtomic(ram_buf, pos, r, (byte)0x00);
+        } else if (r > len) {
+            throw InvalidArgumentsException.getInstance();
+        }
+        pos += len;
+
+        // ram_buf now contains the complete public key.
+        apdu.setOutgoing();
         sendLargeData(apdu, (short)0, pos);
     }
 
@@ -1167,6 +1303,15 @@ public class IsoApplet extends Applet implements ExtendedLength {
                 if(ecdsaSignature == null) {
                     ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
                 }
+                
+            } else if(algRef == ALG_DSA_SHA1) {
+                // Key reference must point to a DSA private key.
+                if(keys[privKeyRef].getType() != KeyBuilder.TYPE_DSA_PRIVATE) {
+                    ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+                }
+                if(dsaSignature == null) {
+                    ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
+                }
 
             } else {
                 // No known or supported signature algorithm.
@@ -1378,6 +1523,42 @@ public class IsoApplet extends Applet implements ExtendedLength {
             }
 
             break;
+            
+        case ALG_DSA_SHA1:
+            // Get the key - it must be a DSA private key,
+            // checks have been done in MANAGE SECURITY ENVIRONMENT.
+            DSAPrivateKey dsKey = (DSAPrivateKey) keys[currentPrivateKeyRef[0]];
+
+            // Initialisation should be done when:
+            // 	- No command chaining is performed at all.
+            //	- Command chaining is performed and this is the first apdu in the chain.
+            if(ram_chaining_cache[RAM_CHAINING_CACHE_OFFSET_CURRENT_POS] == (short) 0) {
+                dsaSignature.init(dsKey, Signature.MODE_SIGN);
+                if(isCommandChainingCLA(apdu)) {
+                    ram_chaining_cache[RAM_CHAINING_CACHE_OFFSET_CURRENT_POS] = (short) 1;
+                }
+            }
+
+            short recvLen2 = apdu.setIncomingAndReceive();
+            offset_cdata = apdu.getOffsetCdata();
+
+            // Receive data. For extended APDUs, the data is received piecewise
+            // and aggregated in the hash. When using short APDUs, command
+            // chaining is performed.
+            while (recvLen2 > 0) {
+                dsaSignature.update(buf, offset_cdata, recvLen2);
+                recvLen2 = apdu.receiveBytes(offset_cdata);
+            }
+
+            if(!isCommandChainingCLA(apdu)) {
+                sigLen = dsaSignature.sign(buf, (short)0, (short)0, buf, (short) 0);
+                ram_chaining_cache[RAM_CHAINING_CACHE_OFFSET_CURRENT_POS] = (short) 0;
+                apdu.setOutgoingAndSend((short) 0, sigLen);
+            } else {
+                ram_chaining_cache[RAM_CHAINING_CACHE_OFFSET_CURRENT_POS]++;
+            }
+
+            break;
 
         default:
             // Wrong/unknown algorithm.
@@ -1493,6 +1674,38 @@ public class IsoApplet extends Applet implements ExtendedLength {
             // Import the key from the value field of the outer tag.
             try {
                 importECkey(ram_buf, offset, len);
+            } catch (InvalidArgumentsException e) {
+                ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+            } catch (NotFoundException e) {
+                ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+            }
+            break;
+            
+        case ALG_GEN_DSA:
+            // DSA key import.
+
+            // This ensures that all the data is located in ram_buf, beginning at zero.
+            recvLen = doChainingOrExtAPDU(apdu);
+
+            // Parse the outer tag.
+            if( ram_buf[offset++] != (byte) 0xD0 ) {
+                ISOException.throwIt(ISO7816.SW_WRONG_DATA);
+            }
+            try {
+                len = UtilTLV.decodeLengthField(ram_buf, offset);
+                offset += UtilTLV.getLengthFieldLength(len);
+            } catch (InvalidArgumentsException e) {
+                ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+            }
+            if(len != (short)(recvLen - offset)) {
+                ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+            }
+            if( ! UtilTLV.isTLVconsistent(ram_buf, offset, len) )	{
+                ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+            }
+            // Import the key from the value field of the outer tag.
+            try {
+                importDSAkey(ram_buf, offset, len);
             } catch (InvalidArgumentsException e) {
                 ISOException.throwIt(ISO7816.SW_DATA_INVALID);
             } catch (NotFoundException e) {
@@ -1650,6 +1863,104 @@ public class IsoApplet extends Applet implements ExtendedLength {
             ISOException.throwIt(ISO7816.SW_DATA_INVALID);
         }
     }
+    
+    /**
+     * \brief Update fields of the current private DSA key.
+     *
+     * A MANAGE SECURITY ENVIRONMENT must have preceeded, setting the current
+     * algorithm reference to ALG_GEN_DSA.
+     * This method creates a new instance of the current private key,
+     * depending on the current algorithn reference.
+     *
+     * \param buf The buffer containing the information to update the private key
+     *			field with. The format must be TLV-encoded with the tags:
+     *				- 0x92: p
+     *				- 0x93: q
+     *				- 0x94: 1/q mod p
+     *				- 0x95: d mod (p-1)
+     *				- 0x96: d mod (q-1)
+     *			Note: This buffer will be filled with 0x00 after the operation
+     *			had been performed.
+     *
+     * \param bOff The offset at which the data in buf starts.
+     *
+     * \param bLen The length of the data in buf.
+     *
+     * \throw ISOException SW_CONDITION_NOT_SATISFIED   The current algorithm reference does not match.
+     *                     SW_FUNC_NOT_SUPPORTED        Algorithm is unsupported by the card.
+     *           		   SW_UNKNOWN                   Unknown error.
+     *
+     * \throw NotFoundException The buffer does not contain all the information needed to import a private key.
+     *
+     * \throw InvalidArgumentsException The buffer is malformatted.
+     */
+    private void importDSAkey(byte[] buf, short bOff, short bLen) throws ISOException, NotFoundException, InvalidArgumentsException {
+        short pos = 0;
+        short len;
+        DSAPrivateKey dsaPrKey = null;
+
+        if(currentAlgorithmRef[0] != ALG_GEN_DSA) {
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
+
+        try {
+        	dsaPrKey = (DSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_DSA_PRIVATE, KeyBuilder.LENGTH_DSA_1024, false);
+        } catch(CryptoException e) {
+            if(e.getReason() == CryptoException.NO_SUCH_ALGORITHM) {
+                ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
+            }
+            ISOException.throwIt(ISO7816.SW_UNKNOWN);
+            return;
+        }
+
+        if( ! UtilTLV.isTLVconsistent(buf, bOff, bLen)) {
+            throw InvalidArgumentsException.getInstance();
+        }
+
+        /* Set P */
+        pos = UtilTLV.findTag(buf, bOff, bLen, (byte)0x92);
+        pos++;
+        len = UtilTLV.decodeLengthField(buf, pos);
+        pos += UtilTLV.getLengthFieldLength(len);
+        dsaPrKey.setP(buf, pos, len);
+
+        /* Set Q */
+        pos = UtilTLV.findTag(buf, bOff, bLen, (byte)0x93);
+        pos++;
+        len = UtilTLV.decodeLengthField(buf, pos);
+        pos += UtilTLV.getLengthFieldLength(len);
+        dsaPrKey.setQ(buf, pos, len);
+
+        /* Set G */
+        pos = UtilTLV.findTag(buf, bOff, bLen, (byte)0x94);
+        pos++;
+        len = UtilTLV.decodeLengthField(buf, pos);
+        pos += UtilTLV.getLengthFieldLength(len);
+        dsaPrKey.setG(buf, pos, len);
+
+        /* Set X */
+        pos = UtilTLV.findTag(buf, bOff, bLen, (byte)0x95);
+        pos++;
+        len = UtilTLV.decodeLengthField(buf, pos);
+        pos += UtilTLV.getLengthFieldLength(len);
+        dsaPrKey.setX(buf, pos, len);
+
+        if(dsaPrKey.isInitialized()) {
+            // If the key is usable, it MUST NOT remain in buf.
+            JCSystem.beginTransaction();
+            Util.arrayFillNonAtomic(buf, bOff, bLen, (byte)0x00);
+            if(keys[currentPrivateKeyRef[0]] != null) {
+                keys[currentPrivateKeyRef[0]].clearKey();
+            }
+            keys[currentPrivateKeyRef[0]] = dsaPrKey;
+            if(JCSystem.isObjectDeletionSupported()) {
+                JCSystem.requestObjectDeletion();
+            }
+            JCSystem.commitTransaction();
+        } else {
+            ISOException.throwIt(ISO7816.SW_DATA_INVALID);
+        }
+    }
 
     /**
      * \brief Get the field length of an EC FP key using the amount of bytes
@@ -1763,7 +2074,6 @@ public class IsoApplet extends Applet implements ExtendedLength {
             ISOException.throwIt(ISO7816.SW_DATA_INVALID);
         }
     }
-
 
     /**
      * \brief Process the GET CHALLENGE instruction (INS=0x84).
