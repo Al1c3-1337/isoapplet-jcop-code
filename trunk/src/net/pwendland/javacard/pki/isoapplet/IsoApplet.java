@@ -56,7 +56,7 @@ import javacard.security.RandomData;
  */
 public class IsoApplet extends Applet implements ExtendedLength {
     /* API Version */
-    public static final byte API_VERSION_MAJOR = (byte) 0x01;
+    public static final byte API_VERSION_MAJOR = (byte) 0x00;
     public static final byte API_VERSION_MINOR = (byte) 0x06;
 
     /* Card-specific configuration */
@@ -1265,7 +1265,7 @@ public class IsoApplet extends Applet implements ExtendedLength {
              *******************/
 
             if(algRef != ALG_GEN_EC
-                    && algRef != ALG_GEN_RSA_2048) {
+                    && algRef != ALG_GEN_RSA_2048 && algRef != ALG_GEN_DSA) {
                 ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
             }
             // Check: We need a private key reference.
